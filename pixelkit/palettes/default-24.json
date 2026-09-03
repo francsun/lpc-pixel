@@ -1,0 +1,29 @@
+{
+  "note": "Example 24-color lock. Optional. Omit --palette to keep LPC source colors.",
+  "colors": [
+    {"role": "ink", "hex": "#1A1A22"},
+    {"role": "paper", "hex": "#F4F0E6"},
+    {"role": "shade", "hex": "#1A2230"},
+    {"role": "sky_deep", "hex": "#2B4A6F"},
+    {"role": "sky_mid", "hex": "#4A7BA8"},
+    {"role": "sky_light", "hex": "#8EC4D4"},
+    {"role": "grass_hi", "hex": "#7BC66E"},
+    {"role": "grass_mid", "hex": "#4E9A4A"},
+    {"role": "grass_shadow", "hex": "#2E6B38"},
+    {"role": "dirt_hi", "hex": "#C4A574"},
+    {"role": "dirt_mid", "hex": "#8B6239"},
+    {"role": "dirt_shadow", "hex": "#5A3A22"},
+    {"role": "dirt_deep", "hex": "#3A2416"},
+    {"role": "skin_hi", "hex": "#F0C8A0"},
+    {"role": "skin_mid", "hex": "#D4A07A"},
+    {"role": "skin_shadow", "hex": "#A06B52"},
+    {"role": "hair_hi", "hex": "#8B5A32"},
+    {"role": "hair_mid", "hex": "#5C3A22"},
+    {"role": "coat_hi", "hex": "#3CBFA6"},
+    {"role": "coat_mid", "hex": "#2A8F7A"},
+    {"role": "coat_shadow", "hex": "#1A5C52"},
+    {"role": "danger", "hex": "#D45A4A"},
+    {"role": "gold", "hex": "#E8C84A"},
+    {"role": "stone", "hex": "#6A7380"}
+  ]
+}

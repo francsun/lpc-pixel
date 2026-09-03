@@ -1,0 +1,35 @@
+{
+  "schema": "lpc-toolkit.selection.v1",
+  "name": "adventurer",
+  "bodyType": "male",
+  "items": {
+    "body": {
+      "name": "Body Color",
+      "recolor": "light"
+    },
+    "head": {
+      "name": "Human Male",
+      "recolor": "light"
+    },
+    "expression": {
+      "name": "Neutral",
+      "recolor": "light"
+    },
+    "hair": {
+      "name": "Relm Short",
+      "recolor": "lpcr.brown"
+    },
+    "clothes": {
+      "name": "Cardigan",
+      "recolor": "teal"
+    },
+    "legs": {
+      "name": "Pants",
+      "recolor": "charcoal"
+    },
+    "shoes": {
+      "name": "Basic Boots",
+      "variant": "brown"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+.work/
+dist/
+examples/out/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db

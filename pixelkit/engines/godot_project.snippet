@@ -1,0 +1,14 @@
+; Optional Godot 4 pixel defaults for LPC 64x64 characters.
+; Rendering > Textures > Canvas Textures > Default Texture Filter = Nearest
+; Display > Window: set viewport to your native size, stretch canvas_items, scale integer
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+textures/canvas_textures/default_texture_repeat=0
+
+[display]
+
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/stretch/scale_mode="integer"
