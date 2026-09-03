@@ -4,8 +4,8 @@ description: >-
   Compose engine-agnostic player sprites from Universal LPC via lpc-toolkit and
   pixelkit (64×64 east idle/walk/run strips, optional palette remap, CREDITS,
   optional engine adapters). Use when the user mentions LPC, pixelkit, lpc-pixel,
-  spritesheet, paper-doll, character parts, hero.json, 玩家角色, or asks to
-  build/re-render/swap character parts from a description or reference image.
+  spritesheet, paper-doll, character parts, hero.json, player character, or asks
+  to build/re-render/swap character parts from a description or reference image.
   Never draw the character with generate2dsprite or image_gen.
 ---
 
@@ -13,11 +13,11 @@ description: >-
 
 Character body is LPC paper-doll + `pixelkit`. Identity lives in a selection JSON, not a prompt. Delivery PNGs work in any engine; Godot `.import` is opt-in.
 
-## 写死
+## Hard locks
 
-- 角色禁止 generate2dsprite
-- 失败回 JSON 选件
-- 本工具不管地形
+- Never draw the character with generate2dsprite
+- Failures go back to JSON parts
+- This tool does not own terrain
 
 Also locked:
 
