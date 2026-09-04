@@ -1,16 +1,19 @@
 # lpc-pixel
 
-An agent skill for [Cursor](https://cursor.com), [Codex](https://openai.com/codex/), and any other agent that loads `SKILL.md`. It turns a Universal LPC **JSON loadout** into 64×64 east-facing sprite strips. Character identity lives in the JSON, not in a prompt. The PNGs work in any engine; west facing is a runtime flip.
+An agent skill for [Cursor](https://cursor.com), [Codex](https://openai.com/codex/), and any other agent that loads `SKILL.md`. It turns a Universal LPC **JSON loadout** into 64×64 east-facing sprite strips. Characters are drawn from the open-source [Universal LPC Spritesheet Character Generator](https://github.com/liberatedpixelcup/Universal-LPC-Spritesheet-Character-Generator). Identity lives in the JSON, not in a prompt. The PNGs work in any engine; west facing is a runtime flip.
+
+Thanks to [Liberated Pixel Cup](https://github.com/liberatedpixelcup) and the LPC contributors.
 
 ## Dependencies
 
 | Tool | What it is for |
 |---|---|
 | Cursor, Codex, or another `SKILL.md` agent | Loads [`.cursor/skills/lpc-pixel/SKILL.md`](.cursor/skills/lpc-pixel/SKILL.md) |
-| Node 22+ and [`@lpc-toolkit/cli`](https://www.npmjs.com/package/@lpc-toolkit/cli) | Composes the LPC paper-doll sheet |
+| [Universal LPC Character Generator](https://github.com/liberatedpixelcup/Universal-LPC-Spritesheet-Character-Generator) | Open-source paper-doll art this skill renders |
+| Node 22+ and [`@lpc-toolkit/cli`](https://www.npmjs.com/package/@lpc-toolkit/cli) | Composes the LPC sheet |
 | Python 3.10+ and [Pillow](https://pypi.org/project/Pillow/) | `pixelkit` slices east idle / walk / run |
 
-`pixelkit` calls the CLI as a **subprocess**. Do not import the GPL toolkit into Python or your game. LPC art licenses are listed in `CREDITS.txt` next to every export.
+`pixelkit` calls the CLI as a **subprocess**. Do not import the GPL toolkit into Python or your game. Each export still needs `CREDITS.txt` for the LPC layers.
 
 ## Quick install
 
