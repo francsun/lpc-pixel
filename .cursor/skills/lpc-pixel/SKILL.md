@@ -43,7 +43,7 @@ python pixelkit/pixelkit.py build <file.json> --out dist/<name>
 Optional flags:
 
 ```text
---palette pixelkit/palettes/default-24.json
+--palette <palette.json>
 --engine godot --godot-res-prefix res://sprites/
 --tiles <tile-dir> --tile-top <file.png>
 ```
@@ -76,10 +76,10 @@ Jacket-type coats often lack `run`. If preview/build cannot produce a run cycle,
 ### Swap hair
 
 ```text
-lpc-toolkit character search --selection examples/adventurer.json --type hair --query short --limit 20 --json
+lpc-toolkit character search --selection examples/adventurer/adventurer.json --type hair --query short --limit 20 --json
 lpc-toolkit catalog item <id> --json
-lpc-toolkit character set --selection examples/adventurer.json --type hair --item <id> --recolor lpcr.brown
-python pixelkit/pixelkit.py build examples/adventurer.json --out dist/adventurer
+lpc-toolkit character set --selection examples/adventurer/adventurer.json --type hair --item <id> --recolor lpcr.brown
+python pixelkit/pixelkit.py build examples/adventurer/adventurer.json --out examples/adventurer
 ```
 
 Inspect east idle 1×. If the cut is wrong, `set` another hair id. Do not generate2dsprite a new head.
@@ -87,7 +87,7 @@ Inspect east idle 1×. If the cut is wrong, `set` another hair id. Do not genera
 ### Re-render
 
 ```text
-python pixelkit/pixelkit.py build examples/adventurer.json --out dist/adventurer
+python pixelkit/pixelkit.py build examples/adventurer/adventurer.json --out examples/adventurer
 ```
 
 Open the three strips, the sheet viewer, and CREDITS. No part search unless QA fails.

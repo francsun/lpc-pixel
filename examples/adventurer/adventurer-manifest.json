@@ -1,0 +1,33 @@
+{
+  "schema": "lpc-pixel.manifest.v1",
+  "cell": 64,
+  "east_only": true,
+  "west": "flip_h",
+  "engine": "generic",
+  "palette_remapped": false,
+  "animations": {
+    "idle": {
+      "file": "adventurer-idle.png",
+      "frames": 2,
+      "frame_width": 64,
+      "frame_height": 64
+    },
+    "walk": {
+      "file": "adventurer-walk.png",
+      "frames": 9,
+      "frame_width": 64,
+      "frame_height": 64
+    },
+    "run": {
+      "file": "adventurer-run.png",
+      "frames": 8,
+      "frame_width": 64,
+      "frame_height": 64
+    }
+  },
+  "sheet": "adventurer-sheet.png",
+  "credits": [
+    "CREDITS.txt",
+    "CREDITS.csv"
+  ]
+}

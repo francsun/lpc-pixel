@@ -1,6 +1,5 @@
 .work/
 dist/
-examples/out/
 __pycache__/
 *.py[cod]
 .venv/
@@ -8,3 +7,7 @@ venv/
 node_modules/
 .DS_Store
 Thumbs.db
+examples/**/.work/
+examples/**/qa-report.json
+examples/**/contact-sheet.png
+examples/**/*-sheet.metadata.json

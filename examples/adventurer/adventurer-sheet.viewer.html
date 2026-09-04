@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title id="viewer-document-title">LPC Toolkit</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      background: Canvas;
+      color: CanvasText;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { width: min(72rem, 100%); margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); }
+    header { margin-bottom: 1.5rem; }
+    h1, h2, h3, p { margin-top: 0; }
+    .viewer-toolbar, .playback-controls, .artifact-links {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .viewer-toolbar { margin-bottom: 1rem; }
+    select, button, input { font: inherit; }
+    select, button {
+      min-height: 2.75rem;
+      border: 1px solid color-mix(in srgb, CanvasText 35%, transparent);
+      border-radius: 0.45rem;
+      padding: 0.5rem 0.75rem;
+      background: Canvas;
+      color: CanvasText;
+    }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 0.2rem solid Highlight;
+      outline-offset: 0.15rem;
+    }
+    .direction-stages {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .direction-stages.single-direction {
+      grid-template-columns: minmax(0, 24rem);
+      justify-content: center;
+    }
+    .direction-stage {
+      display: grid;
+      justify-items: center;
+      gap: 0.5rem;
+      margin: 0;
+      padding: 1rem;
+      border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+      border-radius: 0.65rem;
+      background: color-mix(in srgb, Canvas 94%, CanvasText);
+    }
+    canvas, .sheet-thumbnail {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    canvas {
+      display: block;
+      background:
+        linear-gradient(45deg, #bbb 25%, transparent 25%),
+        linear-gradient(-45deg, #bbb 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #bbb 75%),
+        linear-gradient(-45deg, transparent 75%, #bbb 75%);
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-size: 16px 16px;
+    }
+    .playback-controls { margin-bottom: 1.5rem; }
+    .frame-scrubber { flex: 1 1 15rem; }
+    .viewer-error {
+      padding: 0.75rem 1rem;
+      border: 1px solid #b91c1c;
+      border-radius: 0.45rem;
+      color: #b91c1c;
+    }
+    details {
+      border-top: 1px solid color-mix(in srgb, CanvasText 25%, transparent);
+      padding-top: 1rem;
+    }
+    summary { cursor: pointer; font-weight: 700; }
+    .details-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    .sheet-thumbnail { display: block; max-width: 100%; max-height: 20rem; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem; border-bottom: 1px solid color-mix(in srgb, CanvasText 18%, transparent); text-align: left; }
+    pre {
+      max-height: 24rem;
+      overflow: auto;
+      padding: 1rem;
+      border-radius: 0.45rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: color-mix(in srgb, Canvas 90%, CanvasText);
+    }
+    [hidden] { display: none !important; }
+    @media (max-width: 42rem) {
+      .direction-stages,
+      .direction-stages.single-direction { grid-template-columns: 1fr; }
+      .details-grid { grid-template-columns: 1fr; }
+      .playback-controls > button { flex: 1 1 auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="viewer-title"></h1>
+    </header>
+    <section aria-labelledby="viewer-title">
+      <div class="viewer-toolbar">
+        <label id="animation-label" for="animation-select"></label>
+        <select id="animation-select" data-testid="animation-select"></select>
+      </div>
+      <p id="viewer-error" class="viewer-error" data-testid="viewer-error" role="alert" hidden></p>
+      <div id="direction-stages" class="direction-stages" data-testid="direction-stages"></div>
+      <div class="playback-controls">
+        <button id="previous-frame" data-testid="previous-frame" type="button"></button>
+        <button id="playback-toggle" data-testid="playback-toggle" type="button"></button>
+        <button id="next-frame" data-testid="next-frame" type="button"></button>
+        <output id="frame-counter" data-testid="frame-counter" for="frame-scrubber"></output>
+        <input id="frame-scrubber" class="frame-scrubber" data-testid="frame-scrubber" type="range" min="0" step="1">
+      </div>
+    </section>
+    <details data-testid="viewer-details">
+      <summary>
+        <span id="details-label"></span>
+        <span aria-hidden="true"> — </span>
+        <span id="sheet-summary"></span>
+        <span aria-hidden="true"> — </span>
+        <span id="animation-summary"></span>
+        <span aria-hidden="true"> — </span>
+        <span id="license-summary"></span>
+      </summary>
+      <div class="details-grid">
+        <section>
+          <a id="sheet-link"><img id="sheet-thumbnail" class="sheet-thumbnail"></a>
+          <p><a id="sheet-file-link"></a></p>
+        </section>
+        <section>
+          <h2 id="animation-table-heading"></h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th id="animation-column" scope="col"></th>
+                  <th id="kind-column" scope="col"></th>
+                  <th id="frame-size-column" scope="col"></th>
+                  <th id="source-layout-column" scope="col"></th>
+                  <th id="cycle-column" scope="col"></th>
+                  <th id="frames-column" scope="col"></th>
+                  <th id="directions-column" scope="col"></th>
+                </tr>
+              </thead>
+              <tbody id="animation-table-body"></tbody>
+            </table>
+          </div>
+          <h2 id="source-heading"></h2>
+          <p id="source-summary"></p>
+          <h2 id="warnings-heading"></h2>
+          <ul id="warnings-list"></ul>
+          <section id="partial-output" data-testid="partial-output" hidden>
+            <h2 id="partial-output-heading"></h2>
+            <ul id="partial-output-list"></ul>
+          </section>
+          <h2 id="artifacts-heading"></h2>
+          <nav class="artifact-links" aria-labelledby="artifacts-heading">
+            <a id="metadata-link"></a>
+            <a id="credits-txt-link"></a>
+            <a id="credits-csv-link"></a>
+          </nav>
+          <h2 id="credits-heading"></h2>
+          <pre id="credits-text" data-testid="credits-text"></pre>
+        </section>
+      </div>
+    </details>
+  </main>
+  <script id="viewer-data" type="application/json">{"characterName":"adventurer","sheet":{"fileName":"adventurer-sheet.png","width":832,"height":3456},"files":{"metadata":"adventurer.metadata.json","creditsTxt":"adventurer.credits.txt","creditsCsv":"adventurer.credits.csv"},"cliVersion":"0.2.0","metadataSchema":"lpc-toolkit.render-metadata.v1","effectiveLicense":"GPL 3.0","source":{"runtimeSource":"managed-cache","description":"Verified managed asset cache","releaseTag":"assets-v2026.06.05-initial"},"warnings":[{"code":"catalog_warning","message":"alias target \"metal.bronze\" does not match any variant on item \"Epaulets\"","path":"arms/shoulders/shoulders_epaulets.json"},{"code":"catalog_warning","message":"alias target \"metal.gold\" does not match any variant on item \"Epaulets\"","path":"arms/shoulders/shoulders_epaulets.json"},{"code":"catalog_warning","message":"alias target \"metal.silver\" does not match any variant on item \"Epaulets\"","path":"arms/shoulders/shoulders_epaulets.json"},{"code":"catalog_warning","message":"alias target \"black\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"blue\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"bluegray\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"brown\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"charcoal\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"forest\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"gray\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"green\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"lavender\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"leather\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"maroon\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"navy\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"orange\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"pink\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"purple\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"red\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"rose\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"sky\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"slate\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"tan\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"teal\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"walnut\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"white\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"yellow\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.bronze\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.ceramic\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.brass\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.copper\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.iron\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.steel\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.silver\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"},{"code":"catalog_warning","message":"alias target \"metal.gold\" does not match any variant on item \"Pauldrons\"","path":"arms/shoulders/shoulders_pauldrons.json"}],"skippedLayers":[],"animations":[{"animation":"spellcast","kind":"standard","sourceX":0,"sourceY":0,"frameSize":64,"cycle":[0,1,2,3,4,5,6],"directions":4},{"animation":"thrust","kind":"standard","sourceX":0,"sourceY":256,"frameSize":64,"cycle":[0,1,2,3,4,5,6,7],"directions":4},{"animation":"walk","kind":"standard","sourceX":0,"sourceY":512,"frameSize":64,"cycle":[1,2,3,4,5,6,7,8],"directions":4},{"animation":"slash","kind":"standard","sourceX":0,"sourceY":768,"frameSize":64,"cycle":[0,1,2,3,4,5],"directions":4},{"animation":"shoot","kind":"standard","sourceX":0,"sourceY":1024,"frameSize":64,"cycle":[0,1,2,3,4,5,6,7,8,9,10,11,12],"directions":4},{"animation":"hurt","kind":"standard","sourceX":0,"sourceY":1280,"frameSize":64,"cycle":[0,1,2,3,4,5],"directions":1},{"animation":"climb","kind":"standard","sourceX":0,"sourceY":1344,"frameSize":64,"cycle":[0,1,2,3,4,5],"directions":1},{"animation":"idle","kind":"standard","sourceX":0,"sourceY":1408,"frameSize":64,"cycle":[0,0,1],"directions":4},{"animation":"jump","kind":"standard","sourceX":0,"sourceY":1664,"frameSize":64,"cycle":[0,1,2,3,4,1],"directions":4},{"animation":"sit","kind":"standard","sourceX":0,"sourceY":1920,"frameSize":64,"cycle":[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2],"directions":4},{"animation":"emote","kind":"standard","sourceX":0,"sourceY":2176,"frameSize":64,"cycle":[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2],"directions":4},{"animation":"run","kind":"standard","sourceX":0,"sourceY":2432,"frameSize":64,"cycle":[0,1,2,3,4,5,6,7],"directions":4},{"animation":"combat","kind":"standard","sourceX":0,"sourceY":2688,"frameSize":64,"cycle":[0,0,1],"directions":4},{"animation":"1h_slash","kind":"standard","sourceX":0,"sourceY":2944,"frameSize":64,"cycle":[0,1,2,3,4,5,6],"directions":4},{"animation":"1h_backslash","kind":"standard","sourceX":0,"sourceY":2944,"frameSize":64,"cycle":[0,1,2,3,4,5,7,8,9,10,11,12],"directions":4},{"animation":"1h_halfslash","kind":"standard","sourceX":0,"sourceY":3200,"frameSize":64,"cycle":[0,1,2,3,4,5],"directions":4}],"creditsTxt":"body/bodies/male/walk.png\n\t- Note: see details at https://opengameart.org/content/lpc-character-bases; 'Thick' Male Revised Run/Climb by JaidynReiman (based on ElizaWy's LPC Revised)\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t\t- CC-BY-SA 3.0\n\t\t- GPL 3.0\n\t- Authors:\n\t\t- bluecarrot16\n\t\t- JaidynReiman\n\t\t- Benjamin K. Smith (BenCreating)\n\t\t- Evert\n\t\t- Eliza Wyatt (ElizaWy)\n\t\t- TheraHedwig\n\t\t- MuffinElZangano\n\t\t- Durrani\n\t\t- Johannes Sjölund (wulax)\n\t\t- Stephen Challener (Redshrike)\n\t- Links:\n\t\t- https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles\n\t\t- https://opengameart.org/content/lpc-medieval-fantasy-character-sprites\n\t\t- https://opengameart.org/content/lpc-male-jumping-animation-by-durrani\n\t\t- https://opengameart.org/content/lpc-runcycle-and-diagonal-walkcycle\n\t\t- https://opengameart.org/content/lpc-revised-character-basics\n\t\t- https://opengameart.org/content/lpc-be-seated\n\t\t- https://opengameart.org/content/lpc-runcycle-for-male-muscular-and-pregnant-character-bases-with-modular-heads\n\t\t- https://opengameart.org/content/lpc-jump-expanded\n\t\t- https://opengameart.org/content/lpc-character-bases\n\nhead/heads/human/male/walk.png\n\t- Note: original head by Redshrike, tweaks by BenCreating, modular version by bluecarrot16\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t\t- CC-BY-SA 3.0\n\t\t- GPL 3.0\n\t- Authors:\n\t\t- bluecarrot16\n\t\t- Benjamin K. Smith (BenCreating)\n\t\t- Stephen Challener (Redshrike)\n\t- Links:\n\t\t- https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles\n\t\t- https://opengameart.org/content/lpc-character-bases\n\nhead/faces/male/neutral/walk.png\n\t- Note: Original by Redshrike, Expressions by ElizaWy, mapped to all frames by JaidynReiman\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t- Authors:\n\t\t- JaidynReiman\n\t\t- ElizaWy\n\t\t- Stephen Challener (Redshrike)\n\t- Links:\n\t\t- https://github.com/ElizaWy/LPC/tree/main/Characters/Head\n\t\t- https://opengameart.org/content/ulpc-expanded-expressions\n\nhead/faces/male/neutral/walk.png\n\t- Note: Original by Redshrike, spellcast and jump overrides by JaidynReiman\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t\t- CC-BY-SA 3.0\n\t\t- GPL 3.0\n\t- Authors:\n\t\t- JaidynReiman\n\t\t- Stephen Challener (Redshrike)\n\t- Links:\n\t\t- https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles\n\t\t- https://opengameart.org/content/ulpc-expanded-expressions\n\nhair/relm_short/adult/walk.png\n\t- Licenses:\n\t\t- OGA-BY 3.0+\n\t\t- CC-BY 3.0+\n\t\t- GPL 3.0\n\t- Authors:\n\t\t- JaidynReiman\n\t- Links:\n\t\t- https://opengameart.org/content/lpc-relm-hair-xlong-ponytail\n\ntorso/clothes/longsleeve/longsleeve2_cardigan/male/walk.png\n\t- Note: original by ElizaWy; spellcast/thrust/shoot/hurt/male adapted from original by JaidynReiman\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t- Authors:\n\t\t- ElizaWy\n\t\t- JaidynReiman\n\t\t- Stephen Challener (Redshrike)\n\t\t- Johannes Sjölund (wulax)\n\t- Links:\n\t\t- http://opengameart.org/content/lpc-revised-character-basics\n\t\t- https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing\n\t\t- https://opengameart.org/content/lpc-expanded-sit-run-jump-more\n\t\t- https://opengameart.org/content/lpc-expanded-simple-shirts\n\nlegs/pants/male/walk.png\n\t- Note: original male pants by wulax, recolors and edits to v3 base by bluecarrot16, climb/jump/run/sit/emotes/revised combat by JaidynReiman based on ElizaWy's LPC Revised\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t\t- GPL 3.0\n\t\t- CC-BY-SA 3.0\n\t- Authors:\n\t\t- bluecarrot16\n\t\t- JaidynReiman\n\t\t- ElizaWy\n\t\t- Matthew Krohn (makrohn)\n\t\t- Johannes Sjölund (wulax)\n\t\t- Stephen Challener (Redshrike)\n\t- Links:\n\t\t- https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles\n\t\t- https://opengameart.org/content/lpc-medieval-fantasy-character-sprites\n\t\t- https://opengameart.org/content/lpc-expanded-pants\n\nfeet/boots/basic/male/walk/brown.png\n\t- Note: original by Nila122, edited for male and v3 bases by bluecarrot16, Jump/Sit/Emote/Run/Revised Combat by JaidynReiman\n\t- Licenses:\n\t\t- OGA-BY 3.0\n\t\t- CC-BY-SA 3.0\n\t\t- GPL 2.0\n\t\t- GPL 3.0\n\t- Authors:\n\t\t- JaidynReiman\n\t\t- bluecarrot16\n\t\t- Nila122\n\t- Links:\n\t\t- https://opengameart.org/content/lpc-clothes-and-hair\n\t\t- https://opengameart.org/content/lpc-expanded-socks-shoes\n\n"}</script>
+  <script>
+    (() => {
+      'use strict';
+
+      const COPY = Object.freeze({
+        viewerTitle: 'Animation viewer',
+        play: 'Play',
+        pause: 'Pause',
+        previousFrame: 'Previous frame',
+        nextFrame: 'Next frame',
+        singleDirection: 'Single direction',
+        details: 'Spritesheet details',
+        warnings: 'Warnings',
+        credits: 'Credits',
+        animation: 'Animation',
+        animations: 'Animations',
+        artifacts: 'Artifacts',
+        source: 'Portable source',
+        kind: 'Kind',
+        frameSize: 'Frame size',
+        sourceLayout: 'Source origin / layout',
+        cycle: 'Cycle',
+        frames: 'Frames',
+        directions: 'Directions',
+        frame: 'Frame',
+        metadata: 'Metadata JSON',
+        creditsTxt: 'Credits TXT',
+        creditsCsv: 'Credits CSV',
+        sheetThumbnail: 'Spritesheet thumbnail',
+        standard: 'standard',
+        custom: 'custom',
+        license: 'license',
+        none: 'None',
+        partialOutput: 'Partial output',
+        noPlayableAnimations: 'No playable animations were composed.',
+        missingSheet: 'Could not load spritesheet: ',
+        directionNames: Object.freeze(['North', 'West', 'South', 'East']),
+      });
+
+      const dataNode = document.getElementById('viewer-data');
+      if (!dataNode) throw new Error('Missing viewer data.');
+      const model = JSON.parse(dataNode.textContent || '{}');
+      const image = new Image();
+      image.src = encodeURI(model.sheet.fileName);
+
+      const hasPlayableAnimations = model.animations.length > 0;
+      let selected = model.animations[0] || null;
+      let frameIndex = 0;
+      let playing = hasPlayableAnimations &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let lastTime = performance.now();
+      let accumulator = 0;
+      const frameDuration = 1000 / 8;
+      let imageReady = false;
+      let stages = [];
+
+      const animationSelect = document.getElementById('animation-select');
+      const playbackToggle = document.getElementById('playback-toggle');
+      const previousFrame = document.getElementById('previous-frame');
+      const nextFrame = document.getElementById('next-frame');
+      const scrubber = document.getElementById('frame-scrubber');
+      const frameCounter = document.getElementById('frame-counter');
+      const directionStages = document.getElementById('direction-stages');
+      const viewerError = document.getElementById('viewer-error');
+
+      document.getElementById('viewer-title').textContent = model.characterName;
+      document.getElementById('viewer-document-title').textContent =
+        model.characterName + ' — ' + COPY.viewerTitle;
+      document.getElementById('animation-label').textContent = COPY.animation;
+      animationSelect.setAttribute('aria-label', COPY.animation);
+      previousFrame.textContent = COPY.previousFrame;
+      previousFrame.setAttribute('aria-label', COPY.previousFrame);
+      nextFrame.textContent = COPY.nextFrame;
+      nextFrame.setAttribute('aria-label', COPY.nextFrame);
+      scrubber.setAttribute('aria-label', COPY.frame);
+      document.getElementById('details-label').textContent = COPY.details;
+      document.getElementById('animation-table-heading').textContent = COPY.animations;
+      document.getElementById('animation-column').textContent = COPY.animation;
+      document.getElementById('kind-column').textContent = COPY.kind;
+      document.getElementById('frame-size-column').textContent = COPY.frameSize;
+      document.getElementById('source-layout-column').textContent = COPY.sourceLayout;
+      document.getElementById('cycle-column').textContent = COPY.cycle;
+      document.getElementById('frames-column').textContent = COPY.frames;
+      document.getElementById('directions-column').textContent = COPY.directions;
+      document.getElementById('source-heading').textContent = COPY.source;
+      document.getElementById('warnings-heading').textContent = COPY.warnings;
+      document.getElementById('partial-output-heading').textContent = COPY.partialOutput;
+      document.getElementById('artifacts-heading').textContent = COPY.artifacts;
+      document.getElementById('credits-heading').textContent = COPY.credits;
+
+      const sheetFile = encodeURI(model.sheet.fileName);
+      const sheetLink = document.getElementById('sheet-link');
+      const sheetFileLink = document.getElementById('sheet-file-link');
+      const thumbnail = document.getElementById('sheet-thumbnail');
+      sheetLink.href = sheetFile;
+      sheetFileLink.href = sheetFile;
+      sheetFileLink.textContent = model.sheet.fileName;
+      thumbnail.src = sheetFile;
+      thumbnail.alt = COPY.sheetThumbnail;
+
+      const metadataLink = document.getElementById('metadata-link');
+      metadataLink.href = encodeURI(model.files.metadata);
+      metadataLink.textContent = COPY.metadata;
+      const creditsTxtLink = document.getElementById('credits-txt-link');
+      creditsTxtLink.href = encodeURI(model.files.creditsTxt);
+      creditsTxtLink.textContent = COPY.creditsTxt;
+      const creditsCsvLink = document.getElementById('credits-csv-link');
+      creditsCsvLink.href = encodeURI(model.files.creditsCsv);
+      creditsCsvLink.textContent = COPY.creditsCsv;
+
+      const standardCount = model.animations.filter((animation) => animation.kind === 'standard').length;
+      const customCount = model.animations.filter((animation) => animation.kind === 'custom').length;
+      document.getElementById('sheet-summary').textContent =
+        String(model.sheet.width) + ' × ' + String(model.sheet.height);
+      document.getElementById('animation-summary').textContent =
+        String(standardCount) + ' ' + COPY.standard + ', ' +
+        String(customCount) + ' ' + COPY.custom;
+      document.getElementById('license-summary').textContent =
+        COPY.license + ': ' + (model.effectiveLicense || COPY.none);
+
+      const sourceParts = [
+        model.source.runtimeSource,
+        model.source.description,
+        model.source.releaseTag,
+        'CLI ' + model.cliVersion,
+        model.metadataSchema,
+      ].filter((value) => value !== null && value !== '');
+      document.getElementById('source-summary').textContent = sourceParts.join(' — ');
+
+      const animationTableBody = document.getElementById('animation-table-body');
+      for (const descriptor of model.animations) {
+        const row = document.createElement('tr');
+        const sourceColumns = descriptor.cycle.length === 0
+          ? 0
+          : Math.max(...descriptor.cycle) + 1;
+        const values = [
+          descriptor.animation,
+          descriptor.kind,
+          String(descriptor.frameSize) + ' × ' + String(descriptor.frameSize),
+          String(descriptor.sourceX) + ', ' + String(descriptor.sourceY) + ' · ' +
+            String(sourceColumns) + ' columns × ' + String(descriptor.directions) + ' rows',
+          descriptor.cycle.length === 0 ? COPY.none : descriptor.cycle.join(' → '),
+          String(descriptor.cycle.length),
+          String(descriptor.directions),
+        ];
+        for (const value of values) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        }
+        animationTableBody.append(row);
+
+        const option = document.createElement('option');
+        option.value = descriptor.animation;
+        option.textContent = descriptor.animation;
+        animationSelect.append(option);
+      }
+
+      const warningsList = document.getElementById('warnings-list');
+      if (model.warnings.length === 0) {
+        const item = document.createElement('li');
+        item.textContent = COPY.none;
+        warningsList.append(item);
+      } else {
+        for (const warning of model.warnings) {
+          const item = document.createElement('li');
+          item.textContent = warning.code + ': ' + warning.message +
+            (warning.path ? ' (' + warning.path + ')' : '');
+          warningsList.append(item);
+        }
+      }
+      const partialOutputSection = document.getElementById('partial-output');
+      const partialOutputList = document.getElementById('partial-output-list');
+      partialOutputSection.hidden = model.skippedLayers.length === 0;
+      for (const skippedLayer of model.skippedLayers) {
+        const item = document.createElement('li');
+        item.textContent = skippedLayer.code + ': ' + skippedLayer.message +
+          (skippedLayer.path ? ' (' + skippedLayer.path + ')' : '');
+        partialOutputList.append(item);
+      }
+      document.getElementById('credits-text').textContent = model.creditsTxt;
+
+      function updateToggle() {
+        const label = playing ? COPY.pause : COPY.play;
+        playbackToggle.textContent = label;
+        playbackToggle.setAttribute('aria-label', label);
+        playbackToggle.setAttribute('aria-pressed', String(playing));
+      }
+
+      function drawFrame() {
+        if (!selected) return;
+        const column = selected.cycle[frameIndex] || 0;
+        for (const stage of stages) {
+          const context = stage.context;
+          const directionIndex = stage.directionIndex;
+          context.clearRect(0, 0, selected.frameSize, selected.frameSize);
+          context.drawImage(
+            image,
+            selected.sourceX + column * selected.frameSize,
+            selected.sourceY + directionIndex * selected.frameSize,
+            selected.frameSize,
+            selected.frameSize,
+            0,
+            0,
+            selected.frameSize,
+            selected.frameSize,
+          );
+        }
+      }
+
+      function updateFrame() {
+        if (!selected) return;
+        scrubber.value = String(frameIndex);
+        frameCounter.textContent =
+          COPY.frame + ' ' + String(frameIndex + 1) + ' / ' + String(selected.cycle.length) +
+          ' · 8 FPS';
+        if (imageReady) drawFrame();
+      }
+
+      function configureStages() {
+        if (!selected) return;
+        directionStages.replaceChildren();
+        stages = [];
+        directionStages.classList.toggle('single-direction', selected.directions === 1);
+        const names = selected.directions === 1
+          ? [COPY.singleDirection]
+          : COPY.directionNames;
+        names.forEach((name, directionIndex) => {
+          const figure = document.createElement('figure');
+          figure.className = 'direction-stage';
+          figure.setAttribute('data-testid', 'direction-stage');
+          const canvas = document.createElement('canvas');
+          canvas.width = selected.frameSize;
+          canvas.height = selected.frameSize;
+          const displayScale = Math.max(1, Math.floor(192 / selected.frameSize));
+          const displaySize = selected.frameSize * displayScale;
+          canvas.style.width = String(displaySize) + 'px';
+          canvas.style.height = String(displaySize) + 'px';
+          canvas.setAttribute('aria-label', name);
+          const caption = document.createElement('figcaption');
+          caption.textContent = name;
+          figure.append(canvas, caption);
+          directionStages.append(figure);
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('Could not create viewer canvas context.');
+          context.imageSmoothingEnabled = false;
+          stages.push({ context, directionIndex });
+        });
+      }
+
+      function selectAnimation() {
+        selected = model.animations[animationSelect.selectedIndex] || model.animations[0] || null;
+        if (!selected) return;
+        frameIndex = 0;
+        accumulator = 0;
+        scrubber.max = String(Math.max(0, selected.cycle.length - 1));
+        configureStages();
+        updateFrame();
+      }
+
+      animationSelect.addEventListener('change', selectAnimation);
+      playbackToggle.addEventListener('click', () => {
+        if (!selected) return;
+        playing = !playing;
+        accumulator = 0;
+        lastTime = performance.now();
+        updateToggle();
+      });
+      previousFrame.addEventListener('click', () => {
+        if (!selected) return;
+        frameIndex = (frameIndex - 1 + selected.cycle.length) % selected.cycle.length;
+        updateFrame();
+      });
+      nextFrame.addEventListener('click', () => {
+        if (!selected) return;
+        frameIndex = (frameIndex + 1) % selected.cycle.length;
+        updateFrame();
+      });
+      scrubber.addEventListener('input', () => {
+        if (!selected) return;
+        frameIndex = Number.parseInt(scrubber.value, 10);
+        updateFrame();
+      });
+
+      image.addEventListener('load', () => {
+        imageReady = true;
+        if (selected) drawFrame();
+      });
+      image.addEventListener('error', () => {
+        imageReady = false;
+        viewerError.textContent = COPY.missingSheet + model.sheet.fileName;
+        viewerError.hidden = false;
+        directionStages.hidden = true;
+      });
+
+      function tick(now) {
+        const elapsed = now - lastTime;
+        lastTime = now;
+        if (playing && imageReady && selected) {
+          accumulator += Math.max(0, elapsed);
+          const elapsedSteps = Math.floor(accumulator / frameDuration);
+          if (elapsedSteps > 0) {
+            accumulator %= frameDuration;
+            frameIndex = (frameIndex + elapsedSteps) % selected.cycle.length;
+            updateFrame();
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+
+      if (hasPlayableAnimations) {
+        selectAnimation();
+      } else {
+        animationSelect.disabled = true;
+        playbackToggle.disabled = true;
+        previousFrame.disabled = true;
+        nextFrame.disabled = true;
+        scrubber.disabled = true;
+        scrubber.min = '0';
+        scrubber.max = '0';
+        scrubber.value = '0';
+        viewerError.textContent = COPY.noPlayableAnimations;
+        viewerError.hidden = false;
+        frameCounter.textContent = COPY.noPlayableAnimations;
+      }
+      updateToggle();
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
