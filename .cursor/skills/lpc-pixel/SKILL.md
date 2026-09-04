@@ -3,15 +3,16 @@ name: lpc-pixel
 description: >-
   Compose engine-agnostic player sprites from Universal LPC via lpc-toolkit and
   pixelkit (64×64 east idle/walk/run strips, optional palette remap, CREDITS,
-  optional engine adapters). Use when the user mentions LPC, pixelkit, lpc-pixel,
-  spritesheet, paper-doll, character parts, hero.json, player character, or asks
-  to build/re-render/swap character parts from a description or reference image.
-  Never draw the character with generate2dsprite or image_gen.
+  optional engine adapters). For Cursor, Codex, and other SKILL.md agents. Use
+  when the user mentions LPC, pixelkit, lpc-pixel, spritesheet, paper-doll,
+  character parts, hero.json, player character, or asks to build/re-render/swap
+  character parts from a description or reference image. Never draw the
+  character with generate2dsprite or image_gen.
 ---
 
 # LPC Pixel
 
-Character body is LPC paper-doll + `pixelkit`. Identity lives in a selection JSON, not a prompt. Delivery PNGs work in any engine; Godot `.import` is opt-in.
+For Cursor, Codex, and other agents that load `SKILL.md`. Character body is LPC paper-doll + `pixelkit`. Identity lives in a selection JSON, not a prompt. Delivery PNGs work in any engine; Godot `.import` is opt-in.
 
 ## Hard locks
 

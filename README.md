@@ -1,12 +1,12 @@
 # lpc-pixel
 
-A Cursor skill that turns a Universal LPC **JSON loadout** into 64×64 east-facing sprite strips. Character identity lives in the JSON, not in a prompt. The PNGs work in any engine; west facing is a runtime flip.
+An agent skill for [Cursor](https://cursor.com), [Codex](https://openai.com/codex/), and any other agent that loads `SKILL.md`. It turns a Universal LPC **JSON loadout** into 64×64 east-facing sprite strips. Character identity lives in the JSON, not in a prompt. The PNGs work in any engine; west facing is a runtime flip.
 
 ## Dependencies
 
 | Tool | What it is for |
 |---|---|
-| [Cursor](https://cursor.com) | Loads [`.cursor/skills/lpc-pixel/SKILL.md`](.cursor/skills/lpc-pixel/SKILL.md) |
+| Cursor, Codex, or another `SKILL.md` agent | Loads [`.cursor/skills/lpc-pixel/SKILL.md`](.cursor/skills/lpc-pixel/SKILL.md) |
 | Node 22+ and [`@lpc-toolkit/cli`](https://www.npmjs.com/package/@lpc-toolkit/cli) | Composes the LPC paper-doll sheet |
 | Python 3.10+ and [Pillow](https://pypi.org/project/Pillow/) | `pixelkit` slices east idle / walk / run |
 
@@ -21,13 +21,14 @@ npm install -g @lpc-toolkit/cli
 pip install -r requirements.txt
 ```
 
-Copy the skill into your project:
+Copy the skill into the agent folder your tool reads:
 
 ```text
-your-game/.cursor/skills/lpc-pixel/SKILL.md
+your-game/.cursor/skills/lpc-pixel/SKILL.md   # Cursor
+your-game/.codex/skills/lpc-pixel/SKILL.md    # Codex
 ```
 
-Then ask the agent to build or swap character parts with lpc-pixel.
+The file is the same. Then ask the agent to build or swap character parts with lpc-pixel.
 
 ## Example
 
